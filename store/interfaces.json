@@ -1,8 +1,8 @@
 {
-  "add-to-cart-button": {
+  "seller-add-to-cart-button": {
     "component": "Wrapper",
     "content": {
-      "$ref": "app:vtex.add-to-cart-button#/definitions/AddToCardButton"
+      "$ref": "app:premierpetpocbr.seller-add-to-cart-button#/definitions/AddToCardButton"
     }
   }
 }

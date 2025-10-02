@@ -109,6 +109,47 @@ const mapSkuItemForPixelEvent = (skuItem: CartItem) => {
   }
 }
 
+const useSessionSeller = () => {
+  const [sessionSeller, setSessionSeller] = useState<string | null>(null)
+  const [sellerName, setSellerName] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchSessionSeller = async () => {
+      try {
+        const sessionResponse = await fetch(
+          '/api/sessions?items=checkout.regionId,store.channel'
+        )
+        const sessionData = await sessionResponse.json()
+        console.log('sessionData', sessionData)
+        
+        const regionId = sessionData?.namespaces?.checkout?.regionId?.value
+
+        if (regionId) {
+          const regionResponse = await fetch(
+            `/api/checkout/pub/regions/${regionId}`
+          )
+          const regionData = await regionResponse.json()
+          console.log('regionData', regionData)
+
+          const whitelabelSeller = regionData?.[0]?.sellers?.[0]?.id
+          const whitelabelSellerName = regionData?.[0]?.sellers?.[0]?.name
+
+          if (whitelabelSeller) {
+            setSessionSeller(whitelabelSeller)
+            setSellerName(whitelabelSellerName)
+          }
+        }
+      } catch (e) {
+        console.error("Erro ao buscar seller da sessão: ", e)
+      }
+    }
+
+    fetchSessionSeller()
+  }, [])
+
+  return { sellerId: sessionSeller, sellerName }
+}
+
 function AddToCartButton(props: Props) {
   const {
     text,
@@ -144,6 +185,8 @@ function AddToCartButton(props: Props) {
   const translateMessage = (message: MessageDescriptor) =>
     intl.formatMessage(message)
   const { shippingOption } = useShippingOptionState()
+
+  const {sellerId: sessionSeller, sellerName: sessionSellerName} = useSessionSeller()
 
   // collect toast and fake loading delay timers
   const timers = useRef<Record<string, number | undefined>>({})
@@ -185,6 +228,8 @@ function AddToCartButton(props: Props) {
   }
 
   const handleAddToCart = async () => {
+    console.log('handleAddToCart')
+
     setFakeLoading(true)
 
     const productLinkIsValid = Boolean(
@@ -205,6 +250,12 @@ function AddToCartButton(props: Props) {
       return
     }
 
+    const itemsWithSessionSeller = skuItems.map(item => ({
+      ...item,
+      seller: sessionSeller || item.seller || '1',
+      sellerName: sessionSellerName || item.sellerName || 'DEFAULT'
+    }))
+
     const shouldOpenShippingModal =
       onClickBehavior === 'add-to-cart-and-trigger-shipping-modal' &&
       !shippingOption
@@ -213,7 +264,7 @@ function AddToCartButton(props: Props) {
       push({
         id: 'item-added-to-cart-shipping-modal',
         addToCartInfo: {
-          skuItems,
+          skuItems: itemsWithSessionSeller,
           options: {
             marketingData: { ...utmParams, ...utmiParams },
             ...options,
@@ -224,12 +275,12 @@ function AddToCartButton(props: Props) {
       return
     }
 
-    const addItemsPromise = addItems(skuItems, {
+    const addItemsPromise = addItems(itemsWithSessionSeller, {
       marketingData: { ...utmParams, ...utmiParams },
       ...options,
     })
 
-    const pixelEventItems = skuItems.map(mapSkuItemForPixelEvent)
+    const pixelEventItems = itemsWithSessionSeller.map(mapSkuItemForPixelEvent)
     const pixelEvent =
       customPixelEventId && addToCartFeedback === 'customEvent'
         ? {

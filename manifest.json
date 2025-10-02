@@ -1,6 +1,6 @@
 {
-  "vendor": "vtex",
-  "name": "add-to-cart-button",
+  "vendor": "premierpetpocbr",
+  "name": "seller-add-to-cart-button",
   "version": "0.31.0",
   "title": "Add to Cart Button",
   "description": "A button component to add items into the shopping cart.",
@@ -20,7 +20,8 @@
     "vtex.pixel-manager": "1.x",
     "vtex.store-resources": "0.x",
     "vtex.native-types": "0.x",
-    "vtex.shipping-option-components": "1.x"
+    "vtex.shipping-option-components": "1.x",
+    "vtex.add-to-cart-button": "0.x"
   },
   "registries": [
     "smartcheckout"

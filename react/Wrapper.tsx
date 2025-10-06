@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useEffect, useState } from 'react'
 import { useProduct } from 'vtex.product-context'
 import type { ProductTypes } from 'vtex.product-context'
 import { withToast } from 'vtex.styleguide'
@@ -79,6 +79,47 @@ function getDefaultSeller(sellers?: ProductTypes.Seller[]) {
   return sellers[0]
 }
 
+function useSessionSellerId() {
+  const [sessionSellerId, setSessionSellerId] = useState<string | null>(null)
+
+  useEffect(() => {
+    let isSubscribed = true
+
+    const fetchSessionSeller = async () => {
+      try {
+        const sessionResponse = await fetch(
+          '/api/sessions?items=checkout.regionId,store.channel'
+        )
+        const sessionData = await sessionResponse.json()
+
+        const regionId = sessionData?.namespaces?.checkout?.regionId?.value
+
+        if (regionId) {
+          const regionResponse = await fetch(
+            `/api/checkout/pub/regions/${regionId}`
+          )
+          const regionData = await regionResponse.json()
+
+          const whitelabelSeller = regionData?.[0]?.sellers?.[0]?.id
+          if (isSubscribed && whitelabelSeller) {
+            setSessionSellerId(whitelabelSeller)
+          }
+        }
+      } catch (err) {
+        console.error('Failed to get session seller: ', err)
+      }
+    }
+
+    fetchSessionSeller()
+
+    return () => {
+      isSubscribed = false
+    }
+  }, [])
+
+  return sessionSellerId
+}
+
 const Wrapper = withToast(function Wrapper(props: Props) {
   const {
     isOneClickBuy,
@@ -103,8 +144,17 @@ const Wrapper = withToast(function Wrapper(props: Props) {
   const multipleAvailableSKUs = itemsLength > 1
   const selectedItem = productContext?.selectedItem
   const assemblyOptions = productContext?.assemblyOptions
+
+  const sessionSellerId = useSessionSellerId()
+  const sellerFromSession = useMemo(() => {
+    const sellers = productContext?.selectedItem?.sellers
+    if (!sellers || !sessionSellerId) return undefined
+    return sellers.find(s => s.sellerId === sessionSellerId)
+  }, [productContext?.selectedItem?.sellers, sessionSellerId])
+
   const seller =
-    selectedSeller ?? getDefaultSeller(productContext?.selectedItem?.sellers)
+    selectedSeller ?? sellerFromSession ?? getDefaultSeller(productContext?.selectedItem?.sellers)
+
   const selectedQuantity =
     productContext?.selectedQuantity != null
       ? productContext.selectedQuantity

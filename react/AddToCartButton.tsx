@@ -120,7 +120,6 @@ const useSessionSeller = () => {
           '/api/sessions?items=checkout.regionId,store.channel'
         )
         const sessionData = await sessionResponse.json()
-        console.log('sessionData', sessionData)
         
         const regionId = sessionData?.namespaces?.checkout?.regionId?.value
 
@@ -129,7 +128,6 @@ const useSessionSeller = () => {
             `/api/checkout/pub/regions/${regionId}`
           )
           const regionData = await regionResponse.json()
-          console.log('regionData', regionData)
 
           const whitelabelSeller = regionData?.[0]?.sellers?.[0]?.id
           const whitelabelSellerName = regionData?.[0]?.sellers?.[0]?.name
@@ -228,8 +226,6 @@ function AddToCartButton(props: Props) {
   }
 
   const handleAddToCart = async () => {
-    console.log('handleAddToCart')
-
     setFakeLoading(true)
 
     const productLinkIsValid = Boolean(
